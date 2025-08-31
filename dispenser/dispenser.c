@@ -25,33 +25,55 @@ int cook_hamburger(order_t *order, band_t *band){
         printf("BAND IS NULL\n");
         return -1;
     }
+    int tomato = 0;
+    int bread = 0;
+    int lettuce = 0;
+    int meat = 0;
+    int cheese = 0;
     
     for ( size_t i = 0; i<order->count; i++){
         ingredient_t ingredient = order->ingredients[i];
         switch ( ingredient) {
             case TOMATO:
-
-                band->tomato_ingredients = band->tomato_ingredients -1;
+                //band->tomato_ingredients = band->tomato_ingredients -1;
+                tomato++;
                 break;
             case BREAD:
-                band->bread_ingredients = band->bread_ingredients - 1;
+                //band->bread_ingredients = band->bread_ingredients - 1;
+                bread++;
                 break;
             case LETTUCE:
-                band->lettuce_ingredients = band->lettuce_ingredients -1;
+                //band->lettuce_ingredients = band->lettuce_ingredients -1;
+                lettuce++;
                 break;
             case MEAT:
-                band->meat_ingredients = band->meat_ingredients -1;
+                //band->meat_ingredients = band->meat_ingredients -1;
+                meat++;
                 break;
             case CHEESE:
-                band->cheese_ingredients = band->cheese_ingredients -1;
+                //band->cheese_ingredients = band->cheese_ingredients -1;
+                cheese++;
                 break;
             default:
                 printf("COULD NOT DETERMINE WHAT INGREDIENT WAS RECEIVED\n");
                 continue;
         }
-        band->produced++;
-        
     }
+    if ( tomato > band->tomato_ingredients || 
+        bread > band->bread_ingredients || 
+        lettuce > band->lettuce_ingredients || 
+        meat > band->meat_ingredients || 
+        cheese > band->cheese_ingredients){   
+            return -1;
+        
+        }
+    band->tomato_ingredients = band->tomato_ingredients - tomato;
+    band->bread_ingredients = band->bread_ingredients - bread;
+    band->lettuce_ingredients = band->lettuce_ingredients - lettuce;
+    band->meat_ingredients =  band->meat_ingredients - meat;
+    band->cheese_ingredients = band->cheese_ingredients - cheese;
+    band->produced++;
+        
     return 0;
 }
 

@@ -20,6 +20,18 @@ int main (int argc, char *argv[]){
         band_status(&bands[i]);
         printf("\n");
     }
+    char *bigMc = "BMMMLTB";
+    order_t *order = init_order(bigMc, strlen(bigMc));
+
+    for( int index = 0; index<N; index++){
+        int result = cook_hamburger(order, &bands[index]);
+        if( result == 0){
+            printf("BAND %d DELIVERED A HAMBURGER\n", index);
+            
+        }else{
+            printf("BAND %d DOESN'T HAVE ENOUGH INGREDIENTS TO MAKE THE HAMBURGER\n", index);
+        }
+    }
 
     // band_t *band = init_band();
     // band_status(band);
