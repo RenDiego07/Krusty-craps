@@ -1,6 +1,7 @@
 #ifndef STRUCT_H
 #define STRUCT_H
 #include <stddef.h>
+#include <pthread.h>
 
 typedef enum {
     BREAD,
@@ -14,6 +15,8 @@ typedef enum {
 typedef struct order{
     ingredient_t *ingredients;
     size_t count;
+    size_t id;
+    
 } order_t;
 
 typedef struct queue_node {
@@ -36,7 +39,16 @@ typedef struct band {
     int cheese_ingredients;
     int meat_ingredients;
     size_t produced;
+    
+    order_queue_t order_queue;
+    order_queue_t waiting_queue; 
 
+    pthread_mutex_t waiting_queue_mutex;
+    pthread_mutex_t queue_mutex;
+    pthread_cond_t queue_condition;
+
+    
+    size_t id;
 
 } band_t;
 

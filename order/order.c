@@ -23,27 +23,27 @@ order_t *init_order(char *stream, size_t length){
         char ingredient = stream[i];
         switch(ingredient){
             case 'B': // B stands for bread
-                printf("BREAD DETECTED\n");
+                // printf("BREAD DETECTED\n");
                 order->ingredients[order->count++] = BREAD;
                 break;
             case 'L': // L stands for lettuce;
-                printf("LETTUCE DETECTED\n");
+                // printf("LETTUCE DETECTED\n");
                 order->ingredients[order->count++] = LETTUCE;
                 break;
             case 'C': // C stands for cheese
-                printf("CHEESE DETECTED \n");
+                // printf("CHEESE DETECTED \n");
                 order->ingredients[order->count++] = CHEESE;
                 break;
             case 'M': // M stands for meat;
-                printf("MEET DETECTED \n");
+                // printf("MEET DETECTED \n");
                 order->ingredients[order->count++] = MEAT;
                 break;
             case 'T': // T stands for TOMATO
-                printf("TOMATO DETECTED \n");
+                // printf("TOMATO DETECTED \n");
                 order->ingredients[order->count++] = TOMATO;
                 break;
             default:
-                // Skip unknown characters
+                //Skip unknown characters
                 break;
         }
     }
