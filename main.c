@@ -5,6 +5,8 @@
 #include <pthread.h>
 #include <stdbool.h>
 #include <unistd.h>
+#include <time.h>
+#include <errno.h>
 
 #include "./dispenser/dispenser.h"
 #include "./order/order.h"
@@ -19,6 +21,7 @@ char *file;
 bool ALL_ORDERS_SERVED = false;
 int NUM_ORDER = 0;
 size_t TIMES_UNTIL_REFILL = 5;
+band_t *global_bands; // Global reference for cross-band access
 
 void* show_band_states(void *arg);
 void* band_handler(void* arg);
@@ -164,7 +167,17 @@ void* band_handler( void* arg){
         pthread_mutex_unlock(&band->waiting_queue_mutex);
         pthread_mutex_lock(&band->queue_mutex);
         while(queue_empty(&band->order_queue) && KRUSTY_OPEN){
-            pthread_cond_wait(&band->queue_condition, &band->queue_mutex);
+
+            // Create timeout: current time + 10 seconds
+            struct timespec timeout;
+            clock_gettime(CLOCK_REALTIME, &timeout);
+            timeout.tv_sec += 10;  // 10 second timeout
+            
+            int result = pthread_cond_timedwait(&band->queue_condition, &band->queue_mutex, &timeout);
+            if(result == ETIMEDOUT) {
+                printf("Band %zu: Timeout waiting for new orders, continuing to check waiting queue\n", band->id);
+                break; // Exit the while loop to continue processing
+            }
         }
 
 
@@ -172,10 +185,17 @@ void* band_handler( void* arg){
             pthread_mutex_unlock(&band->queue_mutex);
             break;
         }
+        
+        // Check if we have an order after timeout
+        if(queue_empty(&band->order_queue)) {
+            pthread_mutex_unlock(&band->queue_mutex);
+            continue; // Go back to check waiting queue again
+        }
+        
         order = dequeue_order(&band->order_queue);
         if( order == NULL) {
-            printf("ORDER IS NULL\n");
-            exit(1);
+            pthread_mutex_unlock(&band->queue_mutex);
+            continue; // Continue the loop instead of crashing
         }
         int result = cook_hamburger(order, band);
         //printf("ORDER %zu corresponds to the band ID : %zu\n", order->id, band->id);
