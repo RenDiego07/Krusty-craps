@@ -8,7 +8,7 @@ int cook_hamburger(order_t *order, band_t *band);
 int band_status(band_t *band);
 band_t *initialize_bands(size_t n);
 void clean_bands(band_t *bands, int n);
-
-
+int band_status_2(band_t *band);
+int fill_dispenser(band_t *band);
 
 #endif

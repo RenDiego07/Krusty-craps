@@ -11,6 +11,13 @@ typedef enum {
     MEAT,
 } ingredient_t;
 
+typedef struct order_data {
+    size_t num_bread;
+    size_t num_tomato;
+    size_t num_lettuce;
+    size_t num_cheese;
+    size_t num_meat;
+} order_data_t;
 
 typedef struct order{
     ingredient_t *ingredients;
@@ -47,10 +54,15 @@ typedef struct band {
     pthread_mutex_t queue_mutex;
     pthread_cond_t queue_condition;
 
-    
+    size_t orders_missed;     
     size_t id;
 
 } band_t;
+
+typedef struct bands_data {
+    band_t *bands;
+    size_t size;
+} bands_data_t;
 
 #endif
 

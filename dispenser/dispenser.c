@@ -65,10 +65,10 @@ int cook_hamburger(order_t *order, band_t *band){
         lettuce > band->lettuce_ingredients || 
         meat > band->meat_ingredients || 
         cheese > band->cheese_ingredients){   
-            return -1;
+        return -1;
         
-        }
-    printf("COOKING ORDER %zu\n", order->id);
+    }
+    //printf("COOKING ORDER %zu\n", order->id);
     band->tomato_ingredients = band->tomato_ingredients - tomato;
     band->bread_ingredients = band->bread_ingredients - bread;
     band->lettuce_ingredients = band->lettuce_ingredients - lettuce;
@@ -76,7 +76,7 @@ int cook_hamburger(order_t *order, band_t *band){
     band->cheese_ingredients = band->cheese_ingredients - cheese;
     band->produced++;
         
-    return 0;
+    return 1;
 }
 
 int band_status (band_t *band){
@@ -93,6 +93,23 @@ int band_status (band_t *band){
     return 0;
 }
 
+int band_status_2(band_t *band){
+    if(band != NULL){
+        printf("==============================\n");
+        printf("BAND ======================|| %zu\n", band->id);
+        printf("BREAD: ====================|| %d\n", band->bread_ingredients);
+        printf("TOMATO: ===================|| %d\n", band->tomato_ingredients);
+        printf("LETTUCE: ==================|| %d\n", band->lettuce_ingredients);
+        printf("MEAT: =====================|| %d\n", band->meat_ingredients);
+        printf("CHEESE: ===================|| %d\n", band->cheese_ingredients);
+        printf("HAMBURGERS PREPARED: ===== || %zu\n", band->produced);
+        printf("==============================\n");
+        return 0;
+    }
+    return -1;
+}
+
+
 
 band_t *initialize_bands(size_t n){
     if(n < 0){
@@ -105,6 +122,7 @@ band_t *initialize_bands(size_t n){
     for( size_t i = 0; i < n; i++){
         bands[i] = init_band();
         bands[i].id = i;
+        bands[i].orders_missed = 0;
 
         bands[i].order_queue.front = NULL;
         bands[i].order_queue.last = NULL;
@@ -118,6 +136,7 @@ band_t *initialize_bands(size_t n){
         pthread_mutex_init(&bands[i].waiting_queue_mutex, NULL);
         pthread_cond_init(&bands[i].queue_condition, NULL);
     }
+
     return bands; 
 }
 
@@ -129,4 +148,17 @@ void clean_bands(band_t *bands, int size){
     free(bands);
 
 }
+
+int fill_dispenser(band_t *band){
+    if ( band == NULL){
+        return -1;
+    }
+    band->bread_ingredients = band->bread_ingredients + 10;
+    band->cheese_ingredients = band->cheese_ingredients + 10;
+    band->meat_ingredients = band->meat_ingredients + 10;
+    band->tomato_ingredients = band->tomato_ingredients + 10;
+    band->lettuce_ingredients = band->lettuce_ingredients + 10;
+    return 1;
+}
+
 

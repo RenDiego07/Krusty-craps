@@ -60,3 +60,23 @@ order_t* dequeue_order(order_queue_t *queue){
     free(node);
     return order;
 }
+
+order_t* peak(order_queue_t *queue){
+    if( queue == NULL){
+        printf("QUEUE IS NULL\n");
+        return NULL;
+    }
+    if(queue->size == 0){
+        printf("THERE AREN'T ANY ORDERS IN THE WAITING QUEUE\n");
+        return NULL;
+    }
+    return queue->front->order;
+
+}
+
+bool isEmpty(order_queue_t *queue){
+    if( queue == NULL || queue->size == 0 ){
+        return true;
+    }
+    return false;
+}

@@ -16,9 +16,11 @@
 int N;
 bool KRUSTY_OPEN = true;
 char *file;
-bool ALL_ORDERS_TAKEN = false;
+bool ALL_ORDERS_SERVED = false;
 int NUM_ORDER = 0;
+size_t TIMES_UNTIL_REFILL = 5;
 
+void* show_band_states(void *arg);
 void* band_handler(void* arg);
 
 int main (int argc, char *argv[]){
@@ -39,12 +41,18 @@ int main (int argc, char *argv[]){
     }
 
     band_t *bands = initialize_bands(N);
+    bands_data_t band_data = {bands, N};
+    pthread_t thread_status;
+    if(pthread_create(&thread_status, NULL, show_band_states, &band_data) !=0){
+        printf("COULD NOT INITILIAZE BAND MONITORING THREAD\n");
+        return -1;
+    }
     pthread_t tid [N];
 
     for(int i = 0; i < N; i++){
         if(pthread_create(&tid[i], NULL, band_handler, &bands[i]) != 0){
             printf("COULD NOT INITIALIZE THREADS FOR BAND %d\n", i);
-            exit(1);
+            return -1;
         }
         //band_status(&bands[i]);
         printf("\n");
@@ -53,8 +61,7 @@ int main (int argc, char *argv[]){
     int band_id = 0;
     size_t times = 0;
 
-    while(fgets(request, sizeof(request), fp) || ALL_ORDERS_TAKEN){
-        
+    while(fgets(request, sizeof(request), fp) || ALL_ORDERS_SERVED){
         request[strcspn(request, "\n")] = '\0';
         if( request[0] == '\0'){
             continue;
@@ -77,13 +84,12 @@ int main (int argc, char *argv[]){
     for(int i = 0; i < N; i++) {
       pthread_cond_broadcast(&bands[i].queue_condition);
     }
-    KRUSTY_OPEN = false;
+    KRUSTY_OPEN = true;
     for(int i = 0; i < N; i++) {
       pthread_join(tid[i], NULL);  
     }
     clean_bands(bands, N);
-
-
+    pthread_join(thread_status,NULL);
     return 0;
 }
 
@@ -91,6 +97,71 @@ void* band_handler( void* arg){
     band_t *band = (band_t *) arg;
     while( KRUSTY_OPEN ){
         order_t *order = NULL;
+        pthread_mutex_lock(&band->waiting_queue_mutex);
+        if( !isEmpty(&band->waiting_queue)){
+            for (;;) {
+                order = peak(&band->waiting_queue);
+                if( order != NULL ){
+                    printf("CHECKING IF ORDER %zu CAN BE DISPATCHED \n", order->id);
+                    printf("THESE ARE THE VALUES FROM THE ORDER THAT WAS PULLED FROM THE WAITING QUEUE\n");
+                    order_data_t *order_info = get_info(order);
+                    printf("Order %zu needs: B:%zu T:%zu L:%zu C:%zu M:%zu\n",
+                            order->id, order_info->num_bread, order_info->num_tomato,
+                            order_info->num_lettuce, order_info->num_cheese,
+                            order_info->num_meat);
+                    
+                    printf("Band %zu has: B:%d T:%d L:%d C:%d M:%d\n",
+                            band->id, band->bread_ingredients, band->tomato_ingredients,
+                            band->lettuce_ingredients, band->cheese_ingredients, band->meat_ingredients);
+                    
+                    printf("COMPARISON: ");
+                    bool can_fulfill = true;
+                    if(order_info->num_bread > band->bread_ingredients) {
+                        printf("BREAD INSUFFICIENT (%zu needed, %d have) ", order_info->num_bread, band->bread_ingredients);
+                        can_fulfill = false;
+                    }
+                    if(order_info->num_tomato > band->tomato_ingredients) {
+                        printf("TOMATO INSUFFICIENT (%zu needed, %d have) ", order_info->num_tomato, band->tomato_ingredients);
+                        can_fulfill = false;
+                    }
+                    if(order_info->num_lettuce > band->lettuce_ingredients) {
+                        printf("LETTUCE INSUFFICIENT (%zu needed, %d have) ", order_info->num_lettuce, band->lettuce_ingredients);
+                        can_fulfill = false;
+                    }
+                    if(order_info->num_cheese > band->cheese_ingredients) {
+                        printf("CHEESE INSUFFICIENT (%zu needed, %d have) ", order_info->num_cheese, band->cheese_ingredients);
+                        can_fulfill = false;
+                    }
+                    if(order_info->num_meat > band->meat_ingredients) {
+                        printf("MEAT INSUFFICIENT (%zu needed, %d have) ", order_info->num_meat, band->meat_ingredients);
+                        can_fulfill = false;
+                    }
+                    printf("\n");
+                    free(order_info); // Free the allocated memory
+                    
+                    if(can_fulfill){
+                        cook_hamburger(order, band);
+                        printf("ORDER THAT WAS IN QUEUE FINALLY WAS DISPATCHED [ ORDER ID : %zu ] \n", order->id);
+                        dequeue_order(&band->waiting_queue);
+                    }else{
+                        band->orders_missed++;                        
+                        printf("DID NOT HAVE ENOUGH INREGREDIENTS TO DISPATCH [ ORDER ID : %zu ] \n", order->id);
+                        printf("ORDERS LEFT UNTIL REFILLED %zu\n", TIMES_UNTIL_REFILL - band->orders_missed);
+                        if(band->orders_missed >= TIMES_UNTIL_REFILL){
+                            printf("******************* band %zu *******************\n", band->id);
+                            fill_dispenser(band);
+                            band->orders_missed = 0;
+                        }
+                        break;
+                    }
+                }else{
+                    printf(" HEY, SOMETHING WENT WRONG WITH THE WAITNG QUEUE \n");
+                    break;
+                }
+                sleep(1);
+            }
+        }
+        pthread_mutex_unlock(&band->waiting_queue_mutex);
         pthread_mutex_lock(&band->queue_mutex);
         while(queue_empty(&band->order_queue) && KRUSTY_OPEN){
             pthread_cond_wait(&band->queue_condition, &band->queue_mutex);
@@ -109,7 +180,7 @@ void* band_handler( void* arg){
         int result = cook_hamburger(order, band);
         //printf("ORDER %zu corresponds to the band ID : %zu\n", order->id, band->id);
         pthread_mutex_unlock(&band->queue_mutex);
-        if( result != 0 ){
+        if( result != 1 ){
             printf(" BAND %zu FAILED TO COOK ORDER %zu NOT ENOUGH INGREDIENTS\n", band->id, order->id);
             pthread_mutex_lock(&band->waiting_queue_mutex);
             queue_order(&band->waiting_queue, order);
@@ -119,7 +190,14 @@ void* band_handler( void* arg){
             printf("ORDER %zu DELIVERED SUCESSFULLY by BAND %zu\n", order->id, band->id);
             printf("PREPARING TO TAKE ANOTHER REQUEST....\n");
         }
-    // aqui ya existe una orden. Tengo que desencolar
     }
-
+}
+void *show_band_states(void *args){
+    bands_data_t* bands = (bands_data_t*) args;
+    while(KRUSTY_OPEN){
+        sleep(3);
+        for(size_t i = 0; i<bands->size; i++){
+            band_status_2(&bands->bands[i]);
+        }
+    }
 }

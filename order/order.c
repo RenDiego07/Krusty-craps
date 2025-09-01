@@ -50,3 +50,54 @@ order_t *init_order(char *stream, size_t length){
     
     return order;
 }
+
+order_data_t *get_info(order_t *order){
+      order_data_t *data = (order_data_t *)malloc(sizeof(order_data_t));
+      if(data == NULL) {
+          printf("COULD NOT ALLOCATE MEMORY FOR ORDER DATA\n");
+          return NULL;
+      }
+
+      if(order != NULL) {
+          data->num_bread = 0;
+          data->num_tomato = 0;
+          data->num_lettuce = 0;
+          data->num_cheese = 0;
+          data->num_meat = 0;
+
+          for(size_t i = 0; i < order->count; i++){
+              switch(order->ingredients[i]) {
+                  case BREAD:
+                      data->num_bread++;
+                      break;
+                  case TOMATO:
+                      data->num_tomato++;
+                      break;
+                  case LETTUCE:
+                      data->num_lettuce++;
+                      break;
+                  case CHEESE:
+                      data->num_cheese++;
+                      break;
+                  case MEAT:
+                      data->num_meat++;
+                      break;
+                  default:
+                      // Unknown ingredient, skip
+                      break;
+              }
+          }
+
+          return data;
+      } else {
+          printf("ORDER IS NULL\n");
+          free(data);
+          return NULL;
+      }
+  }
+
+
+
+
+
+
