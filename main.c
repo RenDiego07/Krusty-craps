@@ -16,6 +16,8 @@
 int N;
 bool KRUSTY_OPEN = true;
 char *file;
+bool ALL_ORDERS_TAKEN = false;
+int NUM_ORDER = 0;
 
 void* band_handler(void* arg);
 
@@ -51,16 +53,17 @@ int main (int argc, char *argv[]){
     int band_id = 0;
     size_t times = 0;
 
-    while(fgets(request, sizeof(request), fp)){
+    while(fgets(request, sizeof(request), fp) || ALL_ORDERS_TAKEN){
         
         request[strcspn(request, "\n")] = '\0';
         if( request[0] == '\0'){
             continue;
         }
         order_t *order = init_order(request,strlen(request));
+        sleep(2);
         order->id = times;
         band_id = band_id % N;
-        printf("ORDER %s corresponds to the band ID : %d\n", request, band_id);
+        //printf("ORDER %s corresponds to the band ID : %d\n", request, band_id);
         
         pthread_mutex_lock(&bands[band_id].queue_mutex);
         queue_order(&bands[band_id].order_queue, order);
@@ -70,13 +73,15 @@ int main (int argc, char *argv[]){
         times = times + 1;
     }
     fclose(fp);
-    clean_bands(bands, N);
+
     for(int i = 0; i < N; i++) {
       pthread_cond_broadcast(&bands[i].queue_condition);
     }
+    KRUSTY_OPEN = false;
     for(int i = 0; i < N; i++) {
       pthread_join(tid[i], NULL);  
     }
+    clean_bands(bands, N);
 
 
     return 0;
@@ -102,14 +107,16 @@ void* band_handler( void* arg){
             exit(1);
         }
         int result = cook_hamburger(order, band);
+        //printf("ORDER %zu corresponds to the band ID : %zu\n", order->id, band->id);
         pthread_mutex_unlock(&band->queue_mutex);
         if( result != 0 ){
-            printf("FAILED TO COOK ORDER %zu NOT ENOUGH INGREDIENTS\n", order->id);
+            printf(" BAND %zu FAILED TO COOK ORDER %zu NOT ENOUGH INGREDIENTS\n", band->id, order->id);
             pthread_mutex_lock(&band->waiting_queue_mutex);
             queue_order(&band->waiting_queue, order);
             pthread_mutex_unlock(&band->waiting_queue_mutex);
         }else{
             band_status(band);
+            printf("ORDER %zu DELIVERED SUCESSFULLY by BAND %zu\n", order->id, band->id);
             printf("PREPARING TO TAKE ANOTHER REQUEST....\n");
         }
     // aqui ya existe una orden. Tengo que desencolar

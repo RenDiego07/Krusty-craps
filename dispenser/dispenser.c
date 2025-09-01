@@ -94,7 +94,7 @@ int band_status (band_t *band){
 }
 
 
-band_t *initialize_bands(int n){
+band_t *initialize_bands(size_t n){
     if(n < 0){
         return NULL;
     }
@@ -102,7 +102,7 @@ band_t *initialize_bands(int n){
     if( bands == NULL ){
         return NULL;
     }
-    for( int i = 0; i < n; i++){
+    for( size_t i = 0; i < n; i++){
         bands[i] = init_band();
         bands[i].id = i;
 
